@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Count the Herd — No-API Demo</title>
+<style>
+  /* Minimal utility-style CSS (inspired by Tailwind) + component styles */
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --muted:#94a3b8;
+    --accent:#6366f1;
+    --accent-600:#4f46e5;
+    --glass: rgba(255,255,255,0.04);
+    --glass-2: rgba(255,255,255,0.03);
+    --success:#10b981;
+    --danger:#ef4444;
+    --text:#e6eef8;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #071018 60%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  .container{max-width:1100px;margin:32px auto;padding:20px;display:flex;flex-direction:column;gap:18px;position:relative}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+  h1{margin:0;font-size:clamp(20px,3.5vw,34px);letter-spacing:-0.02em;}
+  p.lead{margin:0;color:var(--muted);font-size:14px;}
+  .main{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;}
+  /* Columns */
+  .left{flex:1;min-width:260px;}
+  .right{width:320px;min-width:260px;display:flex;flex-direction:column;gap:12px;}
+  /* Video card */
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:12px;box-shadow:0 6px 24px rgba(2,6,23,0.6);backdrop-filter: blur(6px);}
+  .video-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;height:calc(100vw * 0.45);max-height:520px;}
+  @media(min-width:900px){ .video-wrap{height:420px;} }
+  video{width:100%;height:100%;display:block;background:#000;object-fit:cover;}
+  .overlay-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .play-btn{
+    pointer-events:auto;
+    background:linear-gradient(90deg,var(--accent),var(--accent-600));
+    color:white;padding:14px 18px;border-radius:999px;border:none;font-weight:700;display:inline-flex;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(79,70,229,0.25);
+    cursor:pointer;font-size:16px;
+  }
+  .play-btn:focus{outline:3px solid rgba(99,102,241,0.18);outline-offset:4px;}
+  .controls-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
+  .btn{background:var(--glass);color:var(--text);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;}
+  .btn:hover{transform:translateY(-2px);transition:transform 120ms ease;}
+  .btn:active{transform:translateY(0);transition:none;}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-600));border:none;color:white;}
+  .btn.warn{background:linear-gradient(90deg,#f97316,#fb923c);border:none;color:white;}
+  .muted{color:var(--muted);font-size:13px;}
+  /* Counter card */
+  .counter-card{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.02));gap:10px;}
+  .entity-left{display:flex;gap:12px;align-items:center;}
+  .emoji{font-size:28px}
+  .meta{display:flex;flex-direction:column;}
+  .label{font-size:13px;color:var(--muted)}
+  .count{font-weight:800;font-size:clamp(20px,5vw,44px);line-height:1;margin:0;}
+  .increment{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700;}
+  .increment:focus{outline:3px solid rgba(99,102,241,0.12);outline-offset:3px;}
+  /* Make +1 buttons larger and more tappable */
+  .increment{padding:12px 18px;font-size:18px;min-width:64px;border-radius:12px}
+  /* Total display */
+  .total-card{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:12px;background:linear-gradient(90deg, rgba(99,102,241,0.12), rgba(79,70,229,0.08));box-shadow:inset 0 1px 0 rgba(255,255,255,0.02);}
+  .total-label{color:var(--muted);font-size:13px}
+  .total-num{font-weight:900;font-size:clamp(28px,6vw,72px);letter-spacing:-0.02em;display:inline-block;transform-origin:center;}
+  .bounce{animation:bounce 300ms cubic-bezier(.2,.9,.3,1);}
+  @keyframes bounce{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+  /* small floating +1 */
+  .float-plus{position:absolute;font-weight:800;color:var(--success);pointer-events:none;font-size:16px;opacity:0;transform:translateY(0);transition:transform 500ms cubic-bezier(.2,.9,.3,1),opacity 420ms;}
+  .float-plus.show{opacity:1;transform:translateY(-30px);transition:transform 600ms cubic-bezier(.2,.9,.3,1),opacity 520ms;}
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:60;}
+  .modal{background:linear-gradient(180deg,#071330,#071018);border-radius:12px;padding:20px;min-width:280px;max-width:520px;box-shadow:0 18px 60px rgba(0,0,0,0.6);}
+  .modal h2{margin:0 0 8px 0}
+  .modal .row{display:flex;justify-content:space-between;margin:6px 0;padding:6px 0;border-bottom:1px dashed rgba(255,255,255,0.03);}
+  .small-muted{font-size:13px;color:var(--muted)}
+  /* accessibility helper */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+  footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;padding-top:6px;}
+  /* Hide mobile copy by default; show/hide based on screen size */
+  .shortcuts-mobile{display:none}
+  .shortcuts-desktop{display:block}
+  /* Mobile portrait: simplified layout - video top half, big controls bottom half */
+  @media(max-width:700px) and (orientation:portrait){
+    .shortcuts-desktop,.shortcuts-mobile{display:none}
+    .main{flex-direction:column}
+    .left{width:100%;}
+    .right{display:none}
+    .video-wrap{height:46vh;max-height:none}
+    .mobile-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px;height:30vh}
+    .mobile-controls .big-btn{flex:0 0 48%;padding:6vh 10px;font-size:20px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-600));color:#fff;border:none;font-weight:800}
+    .mobile-total-badge{position:fixed;top:8px;right:12px;background:linear-gradient(90deg,rgba(99,102,241,0.16),rgba(79,70,229,0.12));padding:8px 12px;border-radius:999px;font-weight:800;z-index:70}
+  }
+  /* Mobile landscape: video center, controls left/right like controller */
+  /*@media(max-width:1000px) and (orientation:landscape){
+    .shortcuts-desktop,.shortcuts-mobile{display:none}
+    .main{flex-direction:row;align-items:center}
+    .left{flex:0 0 48%;display:flex;justify-content:center}
+    .right{flex:0 0 48%;display:flex;flex-direction:column;gap:12px;align-items:center}
+    .video-wrap{height:60vh;max-height:none;width:100%;max-width:640px}
+    /* split controls into two columns left/right visually by using .mobile-controls-left/right */
+   /* .mobile-controls{display:flex;gap:8px;align-items:center;justify-content:center}
+    .mobile-controls-left,.mobile-controls-right{display:flex;flex-direction:column;gap:8px}
+    .mobile-controls .big-btn{padding:14px 12px;font-size:18px;border-radius:12px;min-width:120px}
+    .mobile-total-badge{position:fixed;top:8px;right:12px;background:linear-gradient(90deg,rgba(99,102,241,0.12),rgba(79,70,229,0.08));padding:6px 10px;border-radius:999px;font-weight:800;z-index:70}
+  }*/
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>Count the Herd</h1>
+      <p class="lead">Press S (Sheep), D (Dog), F (Farmer), A (Donkey) or tap + to count while the video plays.</p>
+    </div>
+    <div class="muted">We are in Tajikistan...</div>
+  </header>
+
+  <div class="mobile-total-badge" id="mobileTotal" aria-hidden="true">0</div>
+
+  <main class="main">
+    <section class="left">
+      <div class="card">
+        <div class="video-wrap" id="videoWrap">
+          <video id="mainVideo" preload="metadata" src="video.mp4" playsinline webkit-playsinline></video>
+          <div class="overlay-play" id="overlay">
+            <button class="play-btn" id="playBtn" aria-label="Play video and start session">
+              ▶ Play
+            </button>
+          </div>
+        </div>
+
+        <div class="controls-row" style="margin-top:10px">
+          <button class="btn" id="pauseBtn" aria-pressed="false">Pause</button>
+          <button class="btn" id="endBtn">End & Review</button>
+          <button class="btn" id="resetBtn">Reset</button>
+          <div style="flex:1"></div>
+          <div class="small-muted">Duration: <span id="durationText">0.0s</span></div>
+        </div>
+      </div>
+      <!-- Mobile-friendly controls: shown only on small screens via CSS -->
+      <div class="mobile-controls card">
+        <button class="big-btn" data-entity="sheep" aria-label="Sheep">🐑 Sheep</button>
+        <button class="big-btn" data-entity="dog" aria-label="Dog">🐶 Dog</button>
+        <button class="big-btn" data-entity="farmer" aria-label="Farmer">👨‍🌾 Farmer</button>
+        <button class="big-btn" data-entity="donkey" aria-label="Donkey">🦙 Donkey</button>
+      </div>
+      <div style="height:10px"></div>
+      <div class="card shortcuts-desktop" style="padding:10px;">
+        <div class="muted">Keyboard shortcuts</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <div class="btn">S/W → Sheep</div>
+          <div class="btn">D → Dog</div>
+          <div class="btn">F → Farmer</div>
+          <div class="btn">A → Donkey</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <div class="card counter-card" style="align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:8px;flex:1;">
+          <div class="label muted">Total Entities</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="total-num" id="totalNum">0</div>
+            <div class="small-muted">Tap + or press keys while the video plays</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shortcuts-mobile" style="padding:10px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="muted">Keyboard shortcuts</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+            <div class="btn">S/W → Sheep</div>
+            <div class="btn">D → Dog</div>
+            <div class="btn">F → Farmer</div>
+            <div class="btn">A → Donkey</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <!-- Sheep -->
+          <div style="position:relative;">
+            <div class="counter-card">
+              <div class="entity-left">
+                <div class="emoji" aria-hidden>🐑</div>
+                <div class="meta">
+                  <div class="label">Sheep</div>
+                  <div class="count" id="sheepCount">0</div>
+                </div>
+              </div>
+              <div>
+                <button class="increment" data-entity="sheep" aria-label="Increment sheep">+1</button>
+              </div>
+            </div>
+            <div class="float-plus" id="float-sheep">+1</div>
+          </div>
+
+          <!-- Dog -->
+          <div style="position:relative;">
+            <div class="counter-card">
+              <div class="entity-left">
+                <div class="emoji" aria-hidden>🐶</div>
+                <div class="meta">
+                  <div class="label">Dog</div>
+                  <div class="count" id="dogCount">0</div>
+                </div>
+              </div>
+              <div>
+                <button class="increment" data-entity="dog" aria-label="Increment dog">+1</button>
+              </div>
+            </div>
+            <div class="float-plus" id="float-dog">+1</div>
+          </div>
+
+          <!-- Farmer -->
+          <div style="position:relative;">
+            <div class="counter-card">
+              <div class="entity-left">
+                <div class="emoji" aria-hidden>👨‍🌾</div>
+                <div class="meta">
+                  <div class="label">Farmer</div>
+                  <div class="count" id="farmerCount">0</div>
+                </div>
+              </div>
+              <div>
+                <button class="increment" data-entity="farmer" aria-label="Increment farmer">+1</button>
+              </div>
+            </div>
+            <div class="float-plus" id="float-farmer">+1</div>
+          </div>
+
+          <!-- Donkey -->
+          <div style="position:relative;">
+            <div class="counter-card">
+              <div class="entity-left">
+                <div class="emoji" aria-hidden>🦙</div>
+                <div class="meta">
+                  <div class="label">Donkey</div>
+                  <div class="count" id="donkeyCount">0</div>
+                </div>
+              </div>
+              <div>
+                <button class="increment" data-entity="donkey" aria-label="Increment donkey">+1</button>
+              </div>
+            </div>
+            <div class="float-plus" id="float-donkey">+1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:12px;">
+        <div class="muted" style="margin-bottom:8px">Status</div>
+        <div id="statusText" class="small-muted">Not started</div>
+        <div style="height:6px"></div>
+        <div aria-live="polite" class="sr-only" id="ariaLive">Ready</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="muted">Music - "Adai" by Kurmangazy Sagyrbayuly, Aizat Yusupdzhanova <span><a href="https://open.spotify.com/track/4aARTktSTTyAMl7PrEI0xm?si=d4c63c56daa246a5" target="_blank">[Spotify]</a></span></div>
+    <div class="muted">Built by AI (ChatGPT-5-Mini), Prompts by achiu</div>
+  </footer>
+</div>
+
+<!-- Modal template -->
+<div id="modalRoot" aria-hidden="true"></div>
+
+<script>
+(function(){
+  // State
+  const state = {
+    counts: { sheep:0, dog:0, farmer:0, donkey:0 },
+    playing: false,
+    startTs: null,
+    pausedAt: 0,
+  };
+
+  // Elements
+  const video = document.getElementById('mainVideo');
+  const overlay = document.getElementById('overlay');
+  const playBtn = document.getElementById('playBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const endBtn = document.getElementById('endBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const durationText = document.getElementById('durationText');
+  const totalNum = document.getElementById('totalNum');
+  const ariaLive = document.getElementById('ariaLive');
+  const statusText = document.getElementById('statusText');
+  const modalRoot = document.getElementById('modalRoot');
+
+  // Count elements
+  const countsEls = {
+    sheep: document.getElementById('sheepCount'),
+    dog: document.getElementById('dogCount'),
+    farmer: document.getElementById('farmerCount'),
+    donkey: document.getElementById('donkeyCount'),
+  };
+  const floatEls = {
+    sheep: document.getElementById('float-sheep'),
+    dog: document.getElementById('float-dog'),
+    farmer: document.getElementById('float-farmer'),
+    donkey: document.getElementById('float-donkey'),
+  };
+
+  // Utility
+  function updateTotalUI(bounce=false){
+    const total = Object.values(state.counts).reduce((a,b)=>a+b,0);
+    totalNum.textContent = total;
+    const mobileTotal = document.getElementById('mobileTotal');
+    if(mobileTotal) mobileTotal.textContent = total;
+    if(bounce){
+      totalNum.classList.remove('bounce');
+      void totalNum.offsetWidth;
+      totalNum.classList.add('bounce');
+    }
+    statusText.textContent = state.playing ? 'Playing' : 'Paused';
+  }
+  function announce(text){
+    ariaLive.textContent = text;
+  }
+
+  // Increment handler
+  function increment(entity){
+    if(!['sheep','dog','farmer','donkey'].includes(entity)) return;
+    state.counts[entity] += 1;
+    countsEls[entity].textContent = state.counts[entity];
+    animateFloat(entity);
+    updateTotalUI(true);
+    announce(`${capitalize(entity)}: ${state.counts[entity]}`);
+  }
+
+  function animateFloat(entity){
+    const el = floatEls[entity];
+    if(!el) return;
+    el.classList.remove('show');
+    // position it near the increment button
+    const btn = document.querySelector(`button.increment[data-entity="${entity}"]`) || document.querySelector(`.mobile-controls button[data-entity="${entity}"]`);
+    if(btn){
+      const rect = btn.getBoundingClientRect();
+      const wrapRect = document.getElementById('videoWrap').getBoundingClientRect();
+      // Position relative to right card (approx)
+      el.style.left = (rect.left - wrapRect.left) + 'px';
+      el.style.top = (rect.top - wrapRect.top - 10) + 'px';
+    }
+    // trigger show
+    requestAnimationFrame(()=> el.classList.add('show'));
+    // hide after 700ms
+    clearTimeout(el._t);
+    el._t = setTimeout(()=> el.classList.remove('show'), 700);
+  }
+
+  function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+  // Play flow
+  function startPlay(){
+    state.playing = true;
+    if(!state.startTs){
+      state.startTs = performance.now(); // record start for duration
+    }
+    video.play().catch(()=>{ /* ignore */ });
+    overlay.style.display = 'none';
+    playBtn.setAttribute('aria-hidden','true');
+    playBtn.disabled = true;
+    pauseBtn.setAttribute('aria-pressed','false');
+    statusText.textContent = 'Playing';
+  }
+
+  function pauseVideo(){
+    if(!state.playing) return;
+    state.playing = false;
+    video.pause();
+    pauseBtn.setAttribute('aria-pressed','true');
+    overlay.style.display = ''; // show overlay so user can easily restart
+    playBtn.disabled = false;
+    statusText.textContent = 'Paused';
+  }
+
+  // Reset everything
+  function resetAll(){
+    state.counts = { sheep:0, dog:0, farmer:0, donkey:0 };
+    state.playing = false;
+    state.startTs = null;
+    state.pausedAt = 0;
+    video.currentTime = 0;
+    video.pause();
+    overlay.style.display = '';
+    playBtn.disabled = false;
+    for(const k in countsEls) countsEls[k].textContent = '0';
+    updateTotalUI(false);
+    announce('Reset. Ready.');
+  }
+
+  // End & show modal
+  function openEndModal(){
+    pauseVideo();
+    const total = Object.values(state.counts).reduce((a,b)=>a+b,0);
+    const durationMs = state.startTs ? (performance.now() - state.startTs) : 0;
+    const durationSec = (durationMs/1000).toFixed(1);
+
+    // Build modal content
+    modalRoot.innerHTML = '';
+    modalRoot.setAttribute('aria-hidden','false');
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.tabIndex = -1;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.role = 'dialog';
+    modal.ariaModal = 'true';
+    modal.innerHTML = `
+      <h2>Session Summary</h2>
+      <p class="small-muted">Duration: ${durationSec}s</p>
+      <div style="height:8px"></div>
+      <div class="row"><div>Sheep</div><div>${state.counts.sheep}</div></div>
+      <div class="row"><div>Dog</div><div>${state.counts.dog}</div></div>
+      <div class="row"><div>Farmer</div><div>${state.counts.farmer}</div></div>
+      <div class="row"><div>Donkey</div><div>${state.counts.donkey}</div></div>
+      <div class="row" style="font-weight:800;"><div>Total</div><div>${total}</div></div>
+      <div style="height:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="modalClose">Close</button>
+        <button class="btn primary" id="modalPlayAgain">Play Again</button>
+      </div>
+    `;
+    backdrop.appendChild(modal);
+    modalRoot.appendChild(backdrop);
+
+    // Focus trap basics
+    const closeBtn = modal.querySelector('#modalClose');
+    const playAgainBtn = modal.querySelector('#modalPlayAgain');
+    closeBtn.addEventListener('click', closeModal);
+    playAgainBtn.addEventListener('click', ()=>{
+      closeModal();
+      resetAll();
+      startPlay();
+    });
+
+    // close on backdrop click
+    backdrop.addEventListener('click', (e)=>{
+      if(e.target === backdrop) closeModal();
+    });
+
+    // keyboard close
+    function onKey(e){
+      if(e.key === 'Escape') closeModal();
+    }
+    document.addEventListener('keydown', onKey);
+    function closeModal(){
+      document.removeEventListener('keydown', onKey);
+      modalRoot.innerHTML = '';
+      modalRoot.setAttribute('aria-hidden','true');
+      // restore focus
+      playBtn.focus();
+    }
+    // focus first button
+    playAgainBtn.focus();
+  }
+
+  // Update duration display frequently while playing
+  function tickDuration(){
+    if(state.playing && state.startTs){
+      const d = (performance.now() - state.startTs)/1000;
+      durationText.textContent = d.toFixed(1) + 's';
+    }
+    requestAnimationFrame(tickDuration);
+  }
+  requestAnimationFrame(tickDuration);
+
+  // Event listeners
+  playBtn.addEventListener('click', ()=>{
+    startPlay();
+    // Announce a short message for accessibility
+    announce('Session started. Use S/W D F A keys to count.');
+  });
+
+  pauseBtn.addEventListener('click', ()=>{
+    if(state.playing) pauseVideo();
+    else startPlay();
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    const ok = confirm('Reset counts and rewind video?');
+    if(ok) resetAll();
+  });
+
+  endBtn.addEventListener('click', ()=>{
+    openEndModal();
+  });
+
+  // Increment buttons
+  document.querySelectorAll('button.increment').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const entity = btn.dataset.entity;
+      increment(entity);
+    });
+  });
+
+  // Mobile big buttons (in mobile-controls)
+  document.querySelectorAll('.mobile-controls .big-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const entity = btn.dataset.entity;
+      increment(entity);
+      // small visual feedback: bounce total
+      updateTotalUI(true);
+    });
+  });
+
+  // Keyboard handling
+  document.addEventListener('keydown', (e)=>{
+    const targetTag = (e.target && e.target.tagName) || '';
+    if(targetTag === 'INPUT' || targetTag === 'TEXTAREA' || e.target.isContentEditable) return;
+    const key = e.key.toLowerCase();
+    if(key === 's') increment('sheep');
+    if(key === 'w') increment('sheep');
+    if(key === 'd') increment('dog');
+    if(key === 'f') increment('farmer');
+    if(key === 'a') increment('donkey');
+    // Space to toggle play/pause
+    if(key === ' '){
+      e.preventDefault();
+      if(state.playing) pauseVideo(); else startPlay();
+    }
+  });
+
+  // Video events: hide overlay when user clicks native play etc.
+  video.addEventListener('play', ()=> {
+    state.playing = true;
+    if(!state.startTs) state.startTs = performance.now();
+    overlay.style.display = 'none';
+    updateTotalUI(false);
+  });
+  video.addEventListener('pause', ()=> {
+    state.playing = false;
+    overlay.style.display = '';
+    updateTotalUI(false);
+  });
+  // When video ends, show modal automatically
+  video.addEventListener('ended', ()=>{
+    openEndModal();
+  });
+
+  // init UI
+  updateTotalUI(false);
+  announce('Ready');
+
+  // Small usability: click video to toggle play
+  document.getElementById('videoWrap').addEventListener('click', (e)=>{
+    // If clicking overlay's play button, handled by its click handler
+    if(e.target === playBtn) return;
+    if(state.playing) pauseVideo(); else startPlay();
+  });
+
+})();
+</script>
+</body>
+</html>
