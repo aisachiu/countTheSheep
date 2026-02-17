@@ -41,7 +41,7 @@
   .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:12px;box-shadow:0 6px 24px rgba(2,6,23,0.6);backdrop-filter: blur(6px);}
   .video-wrap{position:relative;border-radius:10px;overflow:hidden;background:#000;height:calc(100vw * 0.45);max-height:520px;}
   @media(min-width:900px){ .video-wrap{height:420px;} }
-  video{width:100%;height:100%;display:block;background:#000;object-fit:cover;}
+  video{width:100%;height:100%;display:block;background:#000}
   .overlay-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
   .play-btn{
     pointer-events:auto;
@@ -50,6 +50,8 @@
     cursor:pointer;font-size:16px;
   }
   .play-btn:focus{outline:3px solid rgba(99,102,241,0.18);outline-offset:4px;}
+  /* Base style for large mobile buttons so they keep consistent look */
+  .big-btn{padding:12px 14px;font-size:18px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-600));color:#fff;border:none;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
   .controls-row{display:flex;gap:8px;align-items:center;margin-top:8px;}
   .btn{background:var(--glass);color:var(--text);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;}
   .btn:hover{transform:translateY(-2px);transition:transform 120ms ease;}
@@ -89,30 +91,56 @@
   /* Hide mobile copy by default; show/hide based on screen size */
   .shortcuts-mobile{display:none}
   .shortcuts-desktop{display:block}
-  /* Mobile portrait: simplified layout - video top half, big controls bottom half */
-  @media(max-width:700px) and (orientation:portrait){
-    .shortcuts-desktop,.shortcuts-mobile{display:none}
-    .main{flex-direction:column}
-    .left{width:100%;}
-    .right{display:none}
-    .video-wrap{height:46vh;max-height:none}
-    .mobile-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px;height:30vh}
-    .mobile-controls .big-btn{flex:0 0 48%;padding:6vh 10px;font-size:20px;border-radius:12px;background:linear-gradient(90deg,var(--accent),var(--accent-600));color:#fff;border:none;font-weight:800}
-    .mobile-total-badge{position:fixed;top:8px;right:12px;background:linear-gradient(90deg,rgba(99,102,241,0.16),rgba(79,70,229,0.12));padding:8px 12px;border-radius:999px;font-weight:800;z-index:70}
-  }
-  /* Mobile landscape: video center, controls left/right like controller */
-  /*@media(max-width:1000px) and (orientation:landscape){
-    .shortcuts-desktop,.shortcuts-mobile{display:none}
-    .main{flex-direction:row;align-items:center}
-    .left{flex:0 0 48%;display:flex;justify-content:center}
-    .right{flex:0 0 48%;display:flex;flex-direction:column;gap:12px;align-items:center}
-    .video-wrap{height:60vh;max-height:none;width:100%;max-width:640px}
-    /* split controls into two columns left/right visually by using .mobile-controls-left/right */
-   /* .mobile-controls{display:flex;gap:8px;align-items:center;justify-content:center}
-    .mobile-controls-left,.mobile-controls-right{display:flex;flex-direction:column;gap:8px}
-    .mobile-controls .big-btn{padding:14px 12px;font-size:18px;border-radius:12px;min-width:120px}
-    .mobile-total-badge{position:fixed;top:8px;right:12px;background:linear-gradient(90deg,rgba(99,102,241,0.12),rgba(79,70,229,0.08));padding:6px 10px;border-radius:999px;font-weight:800;z-index:70}
-  }*/
+   /* 0 — 700px: Mobile (portrait / small) */
+   @media (max-width:700px) {
+     .shortcuts-desktop{display:none}
+     .shortcuts-mobile{display:block}
+     .main{flex-direction:column}
+     .left{width:100%}
+     .right{display:none}
+     .video-wrap{height:46vh;max-height:none}
+     .mobile-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px;height:30vh}
+     .mobile-controls .big-btn{flex:0 0 48%;padding:6vh 10px;font-size:20px;border-radius:12px}
+     .mobile-controls-left{display:none}
+     .mobile-controls-right{display:none}
+     .mobile-total-badge{position:fixed;top:8px;right:12px;background:linear-gradient(90deg,rgba(99,102,241,0.16),rgba(79,70,229,0.12));padding:8px 12px;border-radius:999px;font-weight:800;z-index:70}
+   }
+
+   /* 701 — 1000px: Mobile landscape / small tablet */
+   @media (min-width:701px) and (max-width:1000px) {
+     .shortcuts-desktop{display:none}
+     .shortcuts-mobile{display:none}
+     .main{flex-direction:row;align-items:center;justify-content:center;gap:12px}
+     /* hide desktop right column to keep focus on video + controls */
+     .right{display:none}
+     /* left area contains left-controls, video, right-controls */
+     .left{flex:0 0 auto;display:flex;align-items:center;gap:12px;justify-content:center}
+     .mobile-controls{display:none}
+     .mobile-controls-left{display:flex;flex-direction:column;gap:10px;align-items:center}
+    .mobile-controls-left{display:flex;flex-direction:column;gap:10px;align-items:center;order:1;flex:0 0 auto}
+    .mobile-controls-right{display:flex;flex-direction:column;gap:10px;align-items:center;order:3;flex:0 0 auto}
+    .mobile-controls-left .big-btn, .mobile-controls-right .big-btn{padding:14px 16px;font-size:20px;border-radius:12px;min-width:120px; height:30vh}
+    .left > .video-card{order:2;flex:0 0 60vw;max-width:640px}
+     .mobile-total-badge{position:fixed;top:8px;right:12px}
+     
+   }
+
+   /* 1001px+: Desktop */
+   @media (min-width:1001px) {
+     .shortcuts-desktop{display:block}
+     .shortcuts-mobile{display:none}
+     .main{flex-direction:row}
+     .left{flex:1;min-width:260px}
+     .right{width:320px;min-width:260px;display:flex;flex-direction:column;gap:12px}
+     .video-wrap{height:420px}
+     .mobile-controls{display:none}
+     .mobile-controls-left{display:none}
+     .mobile-controls-right{display:none}
+     .mobile-total-badge{display:none}
+   }
+
+  /* hide split mobile controls by default (shown only in landscape) */
+  /*.mobile-controls-left, .mobile-controls-right{display:none}*/
 </style>
 </head>
 <body>
@@ -128,7 +156,12 @@
 
   <main class="main">
     <section class="left">
-      <div class="card">
+      <div class="mobile-controls-left card">
+        <button class="big-btn" data-entity="sheep" aria-label="Sheep">🐑 Sheep</button>
+        <button class="big-btn" data-entity="dog" aria-label="Dog">🐶 Dog</button>
+      </div>
+
+        <div class="card video-card">
         <div class="video-wrap" id="videoWrap">
           <video id="mainVideo" preload="metadata" src="video.mp4" playsinline webkit-playsinline></video>
           <div class="overlay-play" id="overlay">
@@ -146,7 +179,13 @@
           <div class="small-muted">Duration: <span id="durationText">0.0s</span></div>
         </div>
       </div>
-      <!-- Mobile-friendly controls: shown only on small screens via CSS -->
+
+      <div class="mobile-controls-right card">
+        <button class="big-btn" data-entity="farmer" aria-label="Farmer">👨‍🌾 Farmer</button>
+        <button class="big-btn" data-entity="donkey" aria-label="Donkey">🦙 Donkey</button>
+      </div>
+
+      <!-- Mobile-friendly controls (single-row) shown in portrait only -->
       <div class="mobile-controls card">
         <button class="big-btn" data-entity="sheep" aria-label="Sheep">🐑 Sheep</button>
         <button class="big-btn" data-entity="dog" aria-label="Dog">🐶 Dog</button>
@@ -510,10 +549,11 @@
   });
 
   // Mobile big buttons (in mobile-controls)
-  document.querySelectorAll('.mobile-controls .big-btn').forEach(btn=>{
+  // Mobile big buttons: attach to all `.big-btn` so split columns work in landscape
+  document.querySelectorAll('.big-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       const entity = btn.dataset.entity;
-      increment(entity);
+      if(entity) increment(entity);
       // small visual feedback: bounce total
       updateTotalUI(true);
     });
