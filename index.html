@@ -19,6 +19,16 @@
     --text:#e6eef8;
   }
   html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #071018 60%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  /* Mobile tap/zoom fixes for iOS Safari */
+  html{ -webkit-text-size-adjust:100%; }
+  /* Ensure tappable controls are large enough to avoid iOS automatic zoom,
+     and remove tap highlight / use manipulation for faster touches. */
+  button, .btn, .play-btn, .increment, .big-btn {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    touch-action: manipulation;
+    /* Keep at least 16px to prevent iOS auto-zoom on tap */
+    font-size:16px;
+  }
   .container{max-width:1100px;margin:32px auto;padding:20px;display:flex;flex-direction:column;gap:18px;position:relative}
   header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
   h1{margin:0;font-size:clamp(20px,3.5vw,34px);letter-spacing:-0.02em;}
